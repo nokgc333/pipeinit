@@ -1,0 +1,21 @@
+schema_version: 1
+project_type: film
+version_format: "v{n:03d}"
+folder_template:
+  - path: "assets/characters"
+    required: true
+  - path: "assets/sets"
+    required: true
+  - path: "shots"
+    required: true
+  - path: "renders"
+    required: true
+  - path: "editorial"
+    required: true
+naming_patterns:
+  - pattern: '^SHOT\d{3}_[a-z]+_v\d{3}\.\w+$'
+    description: "ショットファイル命名規則（例: SHOT010_lighting_v003.hip）"
+    applies_to: shot
+  - pattern: '^[A-Z][A-Za-z0-9_]*\.(fbx|abc|usd)$'
+    description: "アセットファイル命名規則（例: Character_Hero.fbx）"
+    applies_to: asset

@@ -20,7 +20,7 @@ CG/ゲームパイプライン向けの、プロジェクトフォルダ自動�
 ## インストール
 
 ```bash
-git clone <this-repo>
+git clone https://github.com/nokgc333/pipeinit.git
 cd pipeinit
 python -m venv .venv && source .venv/bin/activate
 pip install -e ".[dev]"

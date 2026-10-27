@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import re
+from collections.abc import Callable, Sequence
 from pathlib import Path
 
 from pipeinit.fsutil import iter_files
@@ -33,30 +34,55 @@ def bump_version(filename: str) -> str:
     return f"{stem}{next_str}{ext}"
 
 
-def validate_directory(target: Path, rules_path: str) -> list[dict[str, str]]:
-    """target 配下のファイル名を naming_patterns と照合し、違反一覧を返す。
-
-    .git 等の隠しディレクトリは走査対象から除外する（TC-010）。
-    """
+def _compile_patterns(rules_path: str) -> list[tuple[re.Pattern[str], str]]:
     rule = load_rule_file(Path(rules_path))
-    patterns = [
+    return [
         (re.compile(entry["pattern"]), entry["description"])
         for entry in rule.get("naming_patterns", [])
     ]
 
+
+def _violation(
+    relative: str, filename: str, patterns: list[tuple[re.Pattern[str], str]]
+) -> dict[str, str]:
+    reasons = "; ".join(description for _, description in patterns)
+    return {
+        "file": relative,
+        "rule": reasons,
+        "message": f"'{filename}' does not match: {reasons}",
+    }
+
+
+def validate_directory(
+    target: Path, rules_path: str, on_file: Callable[[int], None] | None = None
+) -> list[dict[str, str]]:
+    """target 配下のファイル名を naming_patterns と照合し、違反一覧を返す。
+
+    .git 等の隠しディレクトリは走査対象から除外する（TC-010）。
+    `on_file` には、走査したファイルの数(1 から)を、1 件ごとに渡す(進捗の表示用)。
+    """
+    patterns = _compile_patterns(rules_path)
     violations: list[dict[str, str]] = []
-    for path in iter_files(target):
-        filename = path.name
-        if not _matches_any(filename, patterns):
-            relative = str(path.relative_to(target))
-            reasons = "; ".join(description for _, description in patterns)
-            violations.append(
-                {
-                    "file": relative,
-                    "rule": reasons,
-                    "message": f"'{filename}' does not match: {reasons}",
-                }
-            )
+    for count, path in enumerate(iter_files(target), start=1):
+        if on_file is not None:
+            on_file(count)
+        if not _matches_any(path.name, patterns):
+            violations.append(_violation(str(path.relative_to(target)), path.name, patterns))
+    return violations
+
+
+def validate_paths(paths: Sequence[Path], rules_path: str) -> list[dict[str, str]]:
+    """ファイルとフォルダの混在した一覧を検査する(pre-commit は、ファイルを渡す)。
+
+    ファイルは、そのファイル名を検査する。フォルダは、配下のファイルを検査する。
+    """
+    patterns = _compile_patterns(rules_path)
+    violations: list[dict[str, str]] = []
+    for target in paths:
+        if target.is_dir():
+            violations.extend(validate_directory(target, rules_path))
+        elif not _matches_any(target.name, patterns):
+            violations.append(_violation(str(target), target.name, patterns))
     return violations
 
 

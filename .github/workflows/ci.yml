@@ -22,5 +22,5 @@ jobs:
       - run: isort --check .
       - run: flake8 pipeinit/ tests/
       - run: mypy pipeinit/
-      - run: pytest --cov=pipeinit --cov-report=term-missing --cov-fail-under=80
+      - run: pytest --cov=pipeinit --cov-report=term-missing --cov-fail-under=95
       - run: pip-audit

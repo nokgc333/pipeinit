@@ -63,3 +63,52 @@ def test_updates_are_automated_and_the_lock_and_hooks_exist() -> None:
     assert (ROOT / "uv.lock").is_file()
     assert "gitleaks" in _read(".pre-commit-config.yaml")
     assert "pipeinit-validate" in _read(".pre-commit-hooks.yaml")
+
+
+def test_every_adr_is_listed_in_the_readme_and_the_docs_index() -> None:
+    adrs = sorted((ROOT / "docs" / "adr").glob("*.md"))
+    readme = _read("README.md")
+
+    assert len(adrs) >= 6
+    for adr in adrs:
+        assert f"docs/adr/{adr.name}" in readme, adr.name
+
+
+def test_the_readme_has_an_english_summary_an_image_a_diagram_and_the_exit_code_table() -> None:
+    readme = _read("README.md")
+
+    assert "English summary" in readme
+    assert (ROOT / "docs/images/demo.png").is_file()
+    assert "docs/images/demo.png" in readme
+    assert "```mermaid" in readme
+    for code in ("| 0 |", "| 1 |", "| 2 |", "| 5 |", "| 6 |", "| 7 |"):
+        assert code in readme
+
+
+def test_the_readme_exit_codes_match_the_code() -> None:
+    from pipeinit.exit_codes import EXIT_CODE_TABLE
+
+    readme = _read("README.md")
+
+    for code, *_ in EXIT_CODE_TABLE:
+        assert f"| {code} |" in readme
+
+
+def test_the_old_version_of_the_specs_is_archived_and_the_current_one_is_linked() -> None:
+    assert (ROOT / "docs/archive/要件定義書_v1.md").is_file()
+    assert not (ROOT / "docs/要件定義書.md").exists()
+    assert "要件定義書_v2.md" in _read("docs/README.md")
+
+
+def test_contributing_and_the_docs_index_exist() -> None:
+    assert "Conventional Commits" in _read("CONTRIBUTING.md")
+    assert (ROOT / "docs/README.md").is_file()
+
+
+def test_every_relative_link_in_the_readme_points_to_a_file() -> None:
+    import re
+
+    for link in re.findall(
+        r"\]\(((?:docs|CHANGELOG|CONTRIBUTING|LICENSE)[^)#]*)\)", _read("README.md")
+    ):
+        assert (ROOT / link).exists(), link

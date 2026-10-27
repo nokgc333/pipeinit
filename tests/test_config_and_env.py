@@ -384,7 +384,9 @@ class TestSuggestionsAndHook:
 
     def test_the_precommit_hook_runs_validate_on_the_filenames(self) -> None:
         hooks = yaml.safe_load(
-            (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text()
+            (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text(
+                encoding="utf-8"
+            )
         )
 
         hook = hooks[0]

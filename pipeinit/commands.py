@@ -15,13 +15,20 @@ from pipeinit.exit_codes import (
     EXIT_VIOLATIONS_OR_RULE_ERROR,
 )
 from pipeinit.fsutil import DestinationExistsError, rename_without_overwrite
+from pipeinit.houdini_env import write_houdini_env_snippet
 from pipeinit.presenter import Printer
 from pipeinit.rules import RuleFileError, bundled_rule_path, load_rule_file
 from pipeinit.templates import PathTraversalError, generate_tree
 from pipeinit.validator import NoVersionPatternError, bump_version, validate_paths
 
 
-def run_init(printer: Printer, project_type: str, target_path: str, as_json: bool) -> int:
+def run_init(
+    printer: Printer,
+    project_type: str,
+    target_path: str,
+    as_json: bool,
+    houdini_env: bool = False,
+) -> int:
     base = Path(target_path)
     try:
         base.mkdir(parents=True, exist_ok=True)
@@ -46,10 +53,20 @@ def run_init(printer: Printer, project_type: str, target_path: str, as_json: boo
         printer.error(printer.t("cannot_create_under", path=base, reason=exc.strerror or exc))
         return EXIT_NOT_WRITABLE
 
+    snippet: Path | None = None
+    if houdini_env:
+        try:
+            snippet = write_houdini_env_snippet(base)
+        except OSError as exc:
+            printer.error(printer.t("cannot_create_under", path=base, reason=exc.strerror or exc))
+            return EXIT_NOT_WRITABLE
+
     if as_json:
-        printer.result(presenter.init_json(created, skipped))
+        printer.result(presenter.init_json(created, skipped, snippet))
     else:
         presenter.show_init(printer, created, skipped)
+        if snippet is not None:
+            printer.info(printer.t("houdini_written", path=snippet))
     return EXIT_OK
 
 

@@ -1,0 +1,7 @@
+- id: pipeinit-validate
+  name: pipeinit naming convention
+  description: コミットするファイルの名前が、命名規則(.pipeinit.yaml の rules、既定は同梱の generic)に合っているか検査する
+  entry: pipeinit validate
+  language: python
+  pass_filenames: true
+  require_serial: true

@@ -50,6 +50,7 @@ profile = "black"
 
 [tool.pytest.ini_options]
 addopts = "--cov=pipeinit --cov-report=term-missing"
+testpaths = ["tests"]
 
 [tool.mutmut]
 source_paths = ["pipeinit/validator.py", "pipeinit/rules.py", "pipeinit/templates.py", "pipeinit/fsutil.py"]

@@ -9,7 +9,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
-import pipeinit.cli as cli
+import pipeinit.commands as commands
 from pipeinit.cli import (
     EXIT_NOT_WRITABLE,
     EXIT_OK,
@@ -38,7 +38,7 @@ class TestInit:
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
         monkeypatch.setattr(
-            cli,
+            commands,
             "bundled_rule_path",
             lambda name: _rule(
                 tmp_path, GOOD_RULE.replace("schema_version: 1", "schema_version: 9")
@@ -82,11 +82,11 @@ class TestInit:
     def test_unwritable_target_is_reported(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        real_access = cli.os.access
+        real_access = commands.os.access
         monkeypatch.setattr(
-            cli.os,
+            commands.os,
             "access",
-            lambda path, mode, **kw: mode != cli.os.W_OK and real_access(path, mode),
+            lambda path, mode, **kw: mode != commands.os.W_OK and real_access(path, mode),
         )
 
         result = CliRunner().invoke(main, ["init", "--type", "game", "--path", str(tmp_path)])
@@ -100,7 +100,7 @@ class TestInit:
         def failing(rule: object, base: object) -> None:
             raise PermissionError(13, "Permission denied")
 
-        monkeypatch.setattr(cli, "generate_tree", failing)
+        monkeypatch.setattr(commands, "generate_tree", failing)
 
         result = CliRunner().invoke(main, ["init", "--type", "game", "--path", str(tmp_path)])
 
@@ -195,7 +195,7 @@ class TestBump:
         def failing(source: Path, destination: Path) -> None:
             raise PermissionError(13, "Permission denied")
 
-        monkeypatch.setattr(cli, "rename_without_overwrite", failing)
+        monkeypatch.setattr(commands, "rename_without_overwrite", failing)
 
         result = CliRunner().invoke(main, ["bump", str(tmp_path / "a_v001.hip"), "--apply"])
 

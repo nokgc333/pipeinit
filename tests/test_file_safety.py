@@ -189,7 +189,7 @@ class TestPathTraversal:
     def test_init_with_a_bad_rule_through_the_cli_exits_with_the_traversal_code(
         self, tmp_path: Path, monkeypatch: pytest.MonkeyPatch
     ) -> None:
-        import pipeinit.cli as cli
+        import pipeinit.commands as commands
 
         bad = tmp_path / "bad.yaml"
         bad.write_text(
@@ -197,7 +197,7 @@ class TestPathTraversal:
             '  - path: "a/../../escape"\nnaming_patterns: []\n',
             encoding="utf-8",
         )
-        monkeypatch.setattr(cli, "bundled_rule_path", lambda name: bad)
+        monkeypatch.setattr(commands, "bundled_rule_path", lambda name: bad)
         target = tmp_path / "target"
 
         result = CliRunner().invoke(main, ["init", "--type", "generic", "--path", str(target)])

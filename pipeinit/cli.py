@@ -1,35 +1,71 @@
-"""PipeInit CLIエントリポイント（init / validate / bump）。"""
+"""PipeInit CLIエントリポイント（init / validate / bump / completion）。
+
+コマンドの定義だけを置く。表示は presenter、メッセージは messages、終了コードは exit_codes。
+依存の向き: cli → presenter → messages / exit_codes、cli → rules / templates / validator → fsutil。
+"""
 
 from __future__ import annotations
 
-import json
 import os
 import sys
-from pathlib import Path
 
 import click
+from click.shell_completion import get_completion_class
 
-from pipeinit.fsutil import DestinationExistsError, rename_without_overwrite
-from pipeinit.rules import RuleFileError, bundled_rule_path, load_rule_file
-from pipeinit.templates import PathTraversalError, generate_tree
-from pipeinit.validator import NoVersionPatternError, bump_version, validate_directory
+from pipeinit import commands
+from pipeinit.exit_codes import (
+    EXIT_NOT_WRITABLE,
+    EXIT_OK,
+    EXIT_PATH_TRAVERSAL,
+    EXIT_RENAME_CONFLICT,
+    EXIT_VIOLATIONS_OR_RULE_ERROR,
+    exit_code_help,
+)
+from pipeinit.messages import SUPPORTED_LANGUAGES, resolve_language
+from pipeinit.presenter import Printer, color_enabled
 
 PROJECT_TYPES = ["game", "film", "generic"]
+COMPLETION_SHELLS = ["bash", "zsh", "fish"]
+PROGRAM_NAME = "pipeinit"
+COMPLETION_VARIABLE = "_PIPEINIT_COMPLETE"
 
-# exit code規約（仕様書_v2.md §5.4）
-EXIT_OK = 0
-EXIT_VIOLATIONS_OR_RULE_ERROR = 1
-EXIT_UNKNOWN_TYPE = 3
-EXIT_PATH_NOT_FOUND = 4
-EXIT_NOT_WRITABLE = 5
-EXIT_PATH_TRAVERSAL = 6
-EXIT_RENAME_CONFLICT = 7
+__all__ = [
+    "EXIT_NOT_WRITABLE",
+    "EXIT_OK",
+    "EXIT_PATH_TRAVERSAL",
+    "EXIT_RENAME_CONFLICT",
+    "EXIT_VIOLATIONS_OR_RULE_ERROR",
+    "main",
+]
 
 
-@click.group()
+def _printer(ctx: click.Context) -> Printer:
+    printer: Printer = ctx.obj
+    return printer
+
+
+@click.group(epilog=exit_code_help(resolve_language(None, os.environ)))
 @click.version_option()
-def main() -> None:
+@click.option(
+    "--quiet", "-q", is_flag=True, help="補足の出力を抑える(結果と終了コードは変わらない)。"
+)
+@click.option("--verbose", "-v", is_flag=True, help="詳細を標準エラーに出す。")
+@click.option("--no-color", is_flag=True, help="色を付けない(環境変数 NO_COLOR でも切れる)。")
+@click.option(
+    "--lang",
+    type=click.Choice(SUPPORTED_LANGUAGES),
+    default=None,
+    help="メッセージの言語(既定: 環境変数 PIPEINIT_LANG、LANG の順)。",
+)
+@click.pass_context
+def main(ctx: click.Context, quiet: bool, verbose: bool, no_color: bool, lang: str | None) -> None:
     """PipeInit: CG/ゲームパイプライン向けフォルダ構造・命名規則自動化CLI。"""
+    ctx.obj = Printer(
+        lang=resolve_language(lang, os.environ),
+        quiet=quiet,
+        verbose=verbose,
+        color=color_enabled(no_color, os.environ),
+    )
 
 
 @main.command()
@@ -47,41 +83,15 @@ def main() -> None:
     type=click.Path(file_okay=False),
     help="生成先ディレクトリ（既定: カレントディレクトリ）。",
 )
-def init(project_type: str, target_path: str) -> None:
+@click.option("--json", "as_json", is_flag=True, help="結果を JSON で出す。")
+@click.pass_context
+def init(ctx: click.Context, project_type: str, target_path: str, as_json: bool) -> None:
     """プロジェクト種別に応じたフォルダツリーを生成する（FR-001）。"""
-    base = Path(target_path)
-    try:
-        base.mkdir(parents=True, exist_ok=True)
-    except OSError as exc:
-        click.echo(f"Error: cannot create '{base}': {exc.strerror or exc}", err=True)
-        sys.exit(EXIT_NOT_WRITABLE)
-
-    if not os.access(base, os.W_OK):
-        click.echo(f"Error: '{base}' is not writable", err=True)
-        sys.exit(EXIT_NOT_WRITABLE)
-
-    try:
-        rule = load_rule_file(bundled_rule_path(project_type))
-        created, skipped = generate_tree(rule, base)
-    except RuleFileError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(EXIT_VIOLATIONS_OR_RULE_ERROR)
-    except PathTraversalError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(EXIT_PATH_TRAVERSAL)
-    except OSError as exc:
-        click.echo(f"Error: cannot create folders under '{base}': {exc.strerror or exc}", err=True)
-        sys.exit(EXIT_NOT_WRITABLE)
-
-    click.echo(f"Created {len(created)} folders, skipped {len(skipped)} (already exist)")
-    for path in created:
-        click.echo(f"  created: {path}")
-    for path in skipped:
-        click.echo(f"  skipped: {path}")
+    sys.exit(commands.run_init(_printer(ctx), project_type, target_path, as_json))
 
 
 @main.command()
-@click.argument("path", type=click.Path(exists=True, file_okay=False))
+@click.argument("paths", nargs=-1, required=True, type=click.Path(exists=True))
 @click.option("--rules", "rules_path", default=None, type=click.Path(exists=True))
 @click.option(
     "--format",
@@ -89,27 +99,22 @@ def init(project_type: str, target_path: str) -> None:
     default="text",
     type=click.Choice(["text", "json"]),
 )
-def validate(path: str, rules_path: str | None, output_format: str) -> None:
-    """命名規則違反を検出する（FR-002）。違反なし=0 / 違反あり=1。"""
-    resolved_rules = rules_path or str(bundled_rule_path("generic"))
+@click.option("--json", "as_json", is_flag=True, help="--format json の短縮。")
+@click.pass_context
+def validate(
+    ctx: click.Context,
+    paths: tuple[str, ...],
+    rules_path: str | None,
+    output_format: str,
+    as_json: bool,
+) -> None:
+    """命名規則違反を検出する（FR-002）。違反なし=0 / 違反あり=1。
 
-    try:
-        violations = validate_directory(Path(path), resolved_rules)
-    except RuleFileError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(EXIT_VIOLATIONS_OR_RULE_ERROR)
-
-    if output_format == "json":
-        click.echo(
-            json.dumps({"violations": violations, "count": len(violations)}, ensure_ascii=False)
-        )
-    elif violations:
-        for v in violations:
-            click.echo(f"{v['file']}: {v['message']}")
-    else:
-        click.echo("No violations found.")
-
-    sys.exit(EXIT_VIOLATIONS_OR_RULE_ERROR if violations else EXIT_OK)
+    PATHS には、フォルダ(配下を検査)とファイル(その名前を検査。pre-commit 向け)を、複数渡せる。
+    """
+    sys.exit(
+        commands.run_validate(_printer(ctx), paths, rules_path, as_json or output_format == "json")
+    )
 
 
 @main.command()
@@ -121,31 +126,21 @@ def validate(path: str, rules_path: str | None, output_format: str) -> None:
     default=False,
     help="実際にリネームを実行する（既定はドライラン、SEC-003）。",
 )
-def bump(filename: str, do_apply: bool) -> None:
+@click.option("--json", "as_json", is_flag=True, help="結果を JSON で出す。")
+@click.pass_context
+def bump(ctx: click.Context, filename: str, do_apply: bool, as_json: bool) -> None:
     """バージョン番号を1つ繰り上げる（FR-003）。既定はドライラン。"""
-    source = Path(filename)
+    sys.exit(commands.run_bump(_printer(ctx), filename, do_apply, as_json))
 
-    try:
-        new_name = bump_version(source.name)
-    except NoVersionPatternError as exc:
-        click.echo(f"Error: {exc}", err=True)
-        sys.exit(EXIT_VIOLATIONS_OR_RULE_ERROR)
 
-    destination = source.parent / new_name
-
-    if not do_apply:
-        click.echo(f"{source.name} -> {new_name} (dry-run, use --apply to rename)")
-        sys.exit(EXIT_OK)
-
-    try:
-        rename_without_overwrite(source, destination)
-    except DestinationExistsError:
-        click.echo(f"Error: cannot rename to '{new_name}': file already exists", err=True)
-        sys.exit(EXIT_RENAME_CONFLICT)
-    except OSError as exc:
-        click.echo(f"Error: cannot rename '{source.name}': {exc.strerror or exc}", err=True)
-        sys.exit(EXIT_NOT_WRITABLE)
-    click.echo(f"{source.name} -> {new_name}")
+@main.command()
+@click.argument("shell", type=click.Choice(COMPLETION_SHELLS))
+def completion(shell: str) -> None:
+    """シェル補完のスクリプトを出力する。例: `eval "$(pipeinit completion bash)"`。"""
+    completion_class = get_completion_class(shell)
+    if completion_class is None:  # pragma: no cover - click が対応するシェルだけを選択肢にしている
+        raise click.UsageError(f"unsupported shell: {shell}")
+    click.echo(completion_class(main, {}, PROGRAM_NAME, COMPLETION_VARIABLE).source())
 
 
 if __name__ == "__main__":

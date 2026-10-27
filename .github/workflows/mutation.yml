@@ -1,0 +1,28 @@
+name: Mutation
+
+on:
+  schedule:
+    - cron: "0 3 * * 1"
+  workflow_dispatch:
+
+jobs:
+  mutmut:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip setuptools
+      - run: pip install -e ".[dev]"
+      - run: mutmut run --max-children 2
+      - run: mutmut export-cicd-stats
+      - name: Fail when the mutation score drops below 80 percent
+        run: |
+          python - <<'PY'
+          import json
+          stats = json.load(open("mutants/mutmut-cicd-stats.json"))
+          score = stats["killed"] / stats["total"]
+          print(f"mutation score: {score:.1%} ({stats['killed']}/{stats['total']})")
+          raise SystemExit(0 if score >= 0.8 else 1)
+          PY

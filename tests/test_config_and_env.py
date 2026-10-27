@@ -34,6 +34,18 @@ naming_patterns:
 """
 
 
+def _user_home(tmp_path: Path, text: str) -> Path:
+    """どの OS でもユーザー設定として読まれる場所(XDG / APPDATA)に、設定を置く。"""
+    home = tmp_path / "home"
+    (home / "pipeinit").mkdir(parents=True)
+    (home / "pipeinit" / "config.yaml").write_text(text, encoding="utf-8")
+    return home
+
+
+def _env(home: Path) -> dict[str, str]:
+    return {"XDG_CONFIG_HOME": str(home), "APPDATA": str(home), "HOME": str(home)}
+
+
 def _config(directory: Path, **values: str) -> Path:
     path = directory / PROJECT_CONFIG_NAME
     path.write_text(yaml.safe_dump(values), encoding="utf-8")
@@ -126,41 +138,33 @@ class TestLoadConfig:
 
 class TestDiscoverSettings:
     def test_the_project_config_wins_over_the_user_config(self, tmp_path: Path) -> None:
-        home = tmp_path / "home"
-        (home / ".config" / "pipeinit").mkdir(parents=True)
-        (home / ".config" / "pipeinit" / "config.yaml").write_text("lang: ja\n")
+        home = _user_home(tmp_path, "lang: ja\n")
         project = tmp_path / "project"
         project.mkdir()
         _config(project, lang="en")
 
-        settings = discover_settings(project, {"HOME": str(home)})
+        settings = discover_settings(project, _env(home))
 
         assert settings.lang == "en"
 
     def test_the_user_config_fills_in_what_the_project_does_not_set(self, tmp_path: Path) -> None:
-        home = tmp_path / "home"
-        (home / ".config" / "pipeinit").mkdir(parents=True)
-        (home / ".config" / "pipeinit" / "config.yaml").write_text(
-            "lang: ja\nproject_type: unreal\n"
-        )
+        home = _user_home(tmp_path, "lang: ja\nproject_type: unreal\n")
         project = tmp_path / "project"
         project.mkdir()
         _config(project, project_type="maya")
 
-        settings = discover_settings(project, {"HOME": str(home)})
+        settings = discover_settings(project, _env(home))
 
         assert (settings.lang, settings.project_type) == ("ja", "maya")
 
     def test_the_user_config_alone_is_used_when_there_is_no_project_config(
         self, tmp_path: Path
     ) -> None:
-        home = tmp_path / "home"
-        (home / ".config" / "pipeinit").mkdir(parents=True)
-        (home / ".config" / "pipeinit" / "config.yaml").write_text("lang: ja\n")
+        home = _user_home(tmp_path, "lang: ja\n")
         empty = tmp_path / "empty"
         empty.mkdir()
 
-        assert discover_settings(empty, {"HOME": str(home)}).lang == "ja"
+        assert discover_settings(empty, _env(home)).lang == "ja"
 
     def test_no_config_anywhere_gives_empty_settings(self, tmp_path: Path) -> None:
         empty = tmp_path / "empty"
@@ -311,12 +315,12 @@ class TestHoudiniEnv:
 
     def test_the_file_is_written_once_and_never_overwritten(self, tmp_path: Path) -> None:
         first = write_houdini_env_snippet(tmp_path)
-        first.write_text("edited by the artist\n")
+        first.write_text("edited by the artist\n", encoding="utf-8")
 
         second = write_houdini_env_snippet(tmp_path)
 
         assert second == first == tmp_path / ENV_SNIPPET_NAME
-        assert second.read_text() == "edited by the artist\n"
+        assert second.read_text(encoding="utf-8") == "edited by the artist\n"
 
     def test_init_writes_the_snippet_with_the_flag(self, tmp_path: Path) -> None:
         target = tmp_path / "proj"
@@ -328,7 +332,7 @@ class TestHoudiniEnv:
 
         assert result.exit_code == 0
         assert "Wrote Houdini environment snippet" in result.output
-        assert (target / ENV_SNIPPET_NAME).read_text().startswith("# PipeInit")
+        assert (target / ENV_SNIPPET_NAME).read_text(encoding="utf-8").startswith("# PipeInit")
 
     def test_init_does_not_write_it_without_the_flag(self, tmp_path: Path) -> None:
         target = tmp_path / "proj"
@@ -344,7 +348,10 @@ class TestHoudiniEnv:
             main, ["init", "--type", "houdini", "--path", str(target), "--houdini-env", "--json"]
         )
 
-        assert json.loads(result.output)["houdini_env"].endswith(ENV_SNIPPET_NAME)
+        assert (
+            Path(json.loads(result.output)["houdini_env"]).parts[-2:]
+            == Path(ENV_SNIPPET_NAME).parts
+        )
 
 
 class TestSuggestionsAndHook:
@@ -377,7 +384,9 @@ class TestSuggestionsAndHook:
 
     def test_the_precommit_hook_runs_validate_on_the_filenames(self) -> None:
         hooks = yaml.safe_load(
-            (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text()
+            (Path(__file__).resolve().parents[1] / ".pre-commit-hooks.yaml").read_text(
+                encoding="utf-8"
+            )
         )
 
         hook = hooks[0]

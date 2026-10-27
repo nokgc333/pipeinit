@@ -1,14 +1,37 @@
 [project]
 name = "pipeinit"
-version = "0.1.0"
-description = "CG/ゲームパイプライン向け命名規則・フォルダ構造自動化CLI"
+version = "0.2.0"
+description = "CG/ゲームパイプライン向け命名規則・フォルダ構造自動化CLI(Houdini・Maya・Blender・Unreal)"
 readme = "README.md"
 requires-python = ">=3.11"
-license = { text = "MIT" }
+license = "MIT"
+license-files = ["LICENSE"]
+authors = [{ name = "naokikaneko" }]
+keywords = ["pipeline", "naming-convention", "vfx", "houdini", "maya", "blender", "unreal", "cli"]
+classifiers = [
+    "Development Status :: 4 - Beta",
+    "Environment :: Console",
+    "Intended Audience :: Developers",
+    "Operating System :: MacOS",
+    "Operating System :: Microsoft :: Windows",
+    "Operating System :: POSIX :: Linux",
+    "Programming Language :: Python :: 3",
+    "Programming Language :: Python :: 3.11",
+    "Programming Language :: Python :: 3.12",
+    "Programming Language :: Python :: 3.13",
+    "Topic :: Multimedia :: Graphics :: 3D Modeling",
+    "Topic :: Software Development :: Quality Assurance",
+    "Typing :: Typed",
+]
 dependencies = [
     "click>=8.1.7,<9",
     "PyYAML>=6.0.2,<7",
 ]
+
+[project.urls]
+Homepage = "https://github.com/nokgc333/pipeinit"
+Repository = "https://github.com/nokgc333/pipeinit"
+Changelog = "https://github.com/nokgc333/pipeinit/blob/main/CHANGELOG.md"
 
 [project.optional-dependencies]
 dev = [
@@ -22,20 +45,23 @@ dev = [
     "mypy>=1.11",
     "pip-audit>=2.7",
     "types-PyYAML",
+    "build>=1.2",
+    "twine>=5.1",
+    "radon>=6.0",
 ]
 
 [project.scripts]
-pipeinit = "pipeinit.cli:main"
+pipeinit = "pipeinit.cli:run"
 
 [build-system]
-requires = ["setuptools>=68"]
+requires = ["setuptools>=77"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 include = ["pipeinit*"]
 
 [tool.setuptools.package-data]
-pipeinit = ["data/*.yaml"]
+pipeinit = ["data/*.yaml", "py.typed"]
 
 [tool.mypy]
 strict = true
@@ -53,14 +79,14 @@ addopts = "--cov=pipeinit --cov-report=term-missing"
 testpaths = ["tests"]
 
 [tool.mutmut]
-source_paths = ["pipeinit/validator.py", "pipeinit/rules.py", "pipeinit/templates.py", "pipeinit/fsutil.py"]
-pytest_add_cli_args_test_selection = [
-    "tests/test_validator.py",
-    "tests/test_rules.py",
-    "tests/test_rules_schema.py",
-    "tests/test_templates.py",
-    "tests/test_file_safety.py",
-    "tests/test_properties.py",
+source_paths = [
+    "pipeinit/validator.py",
+    "pipeinit/rules.py",
+    "pipeinit/templates.py",
+    "pipeinit/fsutil.py",
+    "pipeinit/suggest.py",
+    "pipeinit/config.py",
 ]
-pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider"]
-also_copy = ["pipeinit/"]
+pytest_add_cli_args_test_selection = ["tests/"]
+pytest_add_cli_args = ["--no-cov", "-p", "no:cacheprovider", "--ignore=tests/test_cli_subprocess.py"]
+also_copy = ["pipeinit/", ".pre-commit-hooks.yaml"]

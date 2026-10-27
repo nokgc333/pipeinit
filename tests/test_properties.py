@@ -114,7 +114,11 @@ def test_a_resolved_path_is_always_inside_the_base_or_refused(parts: list[str]) 
 def test_validation_reports_exactly_the_files_that_do_not_match(
     tmp_path_factory: pytest.TempPathFactory, names: list[str]
 ) -> None:
-    names = [n for n in names if not n.startswith(".") and n.strip() == n and "/" not in n]
+    names = [
+        n
+        for n in names
+        if not n.startswith(".") and n.strip() == n and "/" not in n and not n.endswith(".")
+    ]
     assume(len({n.lower() for n in names}) == len(names))
     folder = tmp_path_factory.mktemp("scan")
     rule = folder / "rule.yaml"

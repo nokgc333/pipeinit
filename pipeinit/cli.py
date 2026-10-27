@@ -48,6 +48,17 @@ class AppContext:
     settings: Settings
 
 
+def _tolerate_unencodable_output() -> None:
+    """コンソールの文字コードで表せない文字(Windows の cp1252 での日本語など)で、落ちないようにする。
+
+    表せない文字は `?` に置き換える。出力の文字コードそのものは、変えない。
+    """
+    for stream in (sys.stdout, sys.stderr):
+        reconfigure = getattr(stream, "reconfigure", None)
+        if reconfigure is not None:
+            reconfigure(errors="replace")
+
+
 def _app(ctx: click.Context) -> AppContext:
     app: AppContext = ctx.obj
     return app
@@ -73,6 +84,7 @@ def _printer(ctx: click.Context) -> Printer:
 @click.pass_context
 def main(ctx: click.Context, quiet: bool, verbose: bool, no_color: bool, lang: str | None) -> None:
     """PipeInit: CG/ゲームパイプライン向けフォルダ構造・命名規則自動化CLI。"""
+    _tolerate_unencodable_output()
     try:
         settings = discover_settings(Path.cwd(), os.environ)
     except ConfigError as exc:
@@ -178,5 +190,11 @@ def completion(shell: str) -> None:
     click.echo(completion_class(main, {}, PROGRAM_NAME, COMPLETION_VARIABLE).source())
 
 
-if __name__ == "__main__":
+def run() -> None:
+    """コンソールスクリプトの入口。`--help` の出力より前に、出力の文字コードの扱いを整える。"""
+    _tolerate_unencodable_output()
     main()
+
+
+if __name__ == "__main__":
+    run()

@@ -5,12 +5,32 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
-  test:
+  lint:
     runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip setuptools
+      - run: pip install -e ".[dev]"
+      - run: black --check .
+      - run: isort --check .
+      - run: flake8 pipeinit/ tests/ examples/
+      - run: mypy pipeinit/
+      - run: pip-audit
+
+  test:
+    runs-on: ${{ matrix.os }}
     strategy:
+      fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12"]
+        os: [ubuntu-latest, macos-latest, windows-latest]
+        python-version: ["3.11", "3.12", "3.13"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -18,9 +38,23 @@ jobs:
           python-version: ${{ matrix.python-version }}
       - run: python -m pip install --upgrade pip setuptools
       - run: pip install -e ".[dev]"
-      - run: black --check .
-      - run: isort --check .
-      - run: flake8 pipeinit/ tests/
-      - run: mypy pipeinit/
       - run: pytest --cov=pipeinit --cov-report=term-missing --cov-fail-under=95
-      - run: pip-audit
+
+  package:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - run: python -m pip install --upgrade pip build twine
+      - run: python -m build
+      - run: twine check dist/*
+      - name: "インストールして、別のディレクトリから動くこと(同梱のルールを含む)"
+        run: |
+          python -m venv "$RUNNER_TEMP/venv"
+          "$RUNNER_TEMP/venv/bin/pip" install dist/*.whl
+          cd "$RUNNER_TEMP"
+          "$RUNNER_TEMP/venv/bin/pipeinit" init --type maya --path "$RUNNER_TEMP/proj"
+          test -d "$RUNNER_TEMP/proj/scenes"
+          "$RUNNER_TEMP/venv/bin/pipeinit" validate "$RUNNER_TEMP/proj" --json

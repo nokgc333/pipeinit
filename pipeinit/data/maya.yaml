@@ -1,0 +1,31 @@
+schema_version: 1
+project_type: maya
+version_format: "v{n:03d}"
+folder_template:
+  - path: "scenes"
+    required: true
+  - path: "sourceimages"
+    required: true
+  - path: "images"
+    required: true
+  - path: "assets/characters"
+    required: true
+  - path: "assets/props"
+    required: true
+  - path: "cache"
+    required: true
+  - path: "scripts"
+    required: true
+naming_patterns:
+  - pattern: '^SHOT\d{3}_[a-z]+_v\d{3}\.(ma|mb)$'
+    description: "Maya のショットシーン(例: SHOT010_anim_v003.ma)"
+    applies_to: shot
+  - pattern: '^[A-Z][A-Za-z0-9]*_[A-Za-z0-9]+_v\d{3}\.(ma|mb)$'
+    description: "Maya のアセット(例: Character_Hero_v001.mb)"
+    applies_to: asset
+  - pattern: '^[A-Za-z0-9]+(_[A-Za-z0-9]+)*\.(png|jpg|jpeg|tif|tiff|exr|tx)$'
+    description: "テクスチャ(例: Hero_body_diffuse.png)"
+    applies_to: texture
+  - pattern: '^[A-Z][A-Za-z0-9_]*\.(fbx|abc|usd)$'
+    description: "書き出し(例: Character_Hero.fbx)"
+    applies_to: export

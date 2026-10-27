@@ -1,0 +1,29 @@
+schema_version: 1
+project_type: blender
+version_format: "v{n:03d}"
+folder_template:
+  - path: "blend"
+    required: true
+  - path: "assets/models"
+    required: true
+  - path: "assets/materials"
+    required: true
+  - path: "textures"
+    required: true
+  - path: "renders"
+    required: true
+  - path: "exports"
+    required: true
+naming_patterns:
+  - pattern: '^SHOT\d{3}_[a-z]+_v\d{3}\.blend$'
+    description: "Blender のショットシーン(例: SHOT010_layout_v003.blend)"
+    applies_to: shot
+  - pattern: '^[A-Z][A-Za-z0-9]*_[A-Za-z0-9]+_v\d{3}\.blend$'
+    description: "Blender のアセット(例: Prop_Chair_v001.blend)"
+    applies_to: asset
+  - pattern: '^[A-Za-z0-9]+(_[A-Za-z0-9]+)*\.(png|jpg|jpeg|exr|tif|tiff)$'
+    description: "テクスチャ(例: Chair_wood_basecolor.png)"
+    applies_to: texture
+  - pattern: '^[A-Z][A-Za-z0-9_]*\.(glb|gltf|fbx|abc|usd[ac]?)$'
+    description: "書き出し(例: Prop_Chair.glb)"
+    applies_to: export

@@ -54,9 +54,11 @@ CATALOG: dict[str, dict[str, str]] = {
 }
 
 
-def resolve_language(option: str | None, env: Mapping[str, str]) -> str:
-    """言語を決める。`--lang`(`ja` / `en`)> `PIPEINIT_LANG` > `LANG`(`ja` で始まれば日本語)> 英語。"""
-    for candidate in (option, env.get("PIPEINIT_LANG")):
+def resolve_language(
+    option: str | None, env: Mapping[str, str], configured: str | None = None
+) -> str:
+    """言語を決める。`--lang` > `PIPEINIT_LANG` > 設定ファイルの `lang` > `LANG`(`ja` で始まれば日本語)> 英語。"""
+    for candidate in (option, env.get("PIPEINIT_LANG"), configured):
         if candidate in SUPPORTED_LANGUAGES:
             return candidate
     locale = env.get("LC_ALL") or env.get("LC_MESSAGES") or env.get("LANG") or ""

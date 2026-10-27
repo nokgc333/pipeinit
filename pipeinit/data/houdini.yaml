@@ -1,0 +1,26 @@
+schema_version: 1
+project_type: houdini
+version_format: "v{n:03d}"
+folder_template:
+  - path: "hip"
+    required: true
+  - path: "geo"
+    required: true
+  - path: "render"
+    required: true
+  - path: "tex"
+    required: true
+  - path: "scripts"
+    required: true
+  - path: "assets/hda"
+    required: true
+naming_patterns:
+  - pattern: '^SHOT\d{3}_[a-z]+_v\d{3}\.(hip|hiplc|hipnc)$'
+    description: "Houdini のシーン(例: SHOT010_fx_v003.hip)"
+    applies_to: shot
+  - pattern: '^[A-Z][A-Za-z0-9]*_[A-Za-z0-9]+_v\d{3}\.hda$'
+    description: "HDA(例: Studio_Tornado_v001.hda)"
+    applies_to: asset
+  - pattern: '^SHOT\d{3}_[a-z]+_v\d{3}(\.\d{4})?\.(bgeo(\.sc)?|abc|usd[ac]?|exr)$'
+    description: "キャッシュ・出力(例: SHOT010_fx_v003.bgeo.sc)"
+    applies_to: cache

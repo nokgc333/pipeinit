@@ -6,6 +6,7 @@ import json
 import os
 from collections.abc import Mapping, Sequence
 from dataclasses import dataclass
+from pathlib import Path
 from typing import Any
 
 import click
@@ -58,8 +59,13 @@ def show_init(printer: Printer, created: Sequence[str], skipped: Sequence[str]) 
         printer.info(printer.t("skipped_item", path=path))
 
 
-def init_json(created: Sequence[str], skipped: Sequence[str]) -> str:
-    return json.dumps({"created": list(created), "skipped": list(skipped)}, ensure_ascii=False)
+def init_json(
+    created: Sequence[str], skipped: Sequence[str], houdini_env: Path | None = None
+) -> str:
+    payload: dict[str, Any] = {"created": list(created), "skipped": list(skipped)}
+    if houdini_env is not None:
+        payload["houdini_env"] = str(houdini_env)
+    return json.dumps(payload, ensure_ascii=False)
 
 
 def show_violations(printer: Printer, violations: Sequence[Mapping[str, str]]) -> None:

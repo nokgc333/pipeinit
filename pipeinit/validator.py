@@ -8,6 +8,7 @@ from pathlib import Path
 
 from pipeinit.fsutil import iter_files
 from pipeinit.rules import load_rule_file
+from pipeinit.suggest import suggest_name
 
 VERSION_RE = re.compile(r"^(?P<stem>.+_v)(?P<num>\d+)(?P<ext>\.\w+)$")
 
@@ -46,11 +47,15 @@ def _violation(
     relative: str, filename: str, patterns: list[tuple[re.Pattern[str], str]]
 ) -> dict[str, str]:
     reasons = "; ".join(description for _, description in patterns)
-    return {
+    violation = {
         "file": relative,
         "rule": reasons,
         "message": f"'{filename}' does not match: {reasons}",
     }
+    suggestion = suggest_name(filename, [pattern for pattern, _ in patterns])
+    if suggestion is not None:
+        violation["suggestion"] = suggestion
+    return violation
 
 
 def validate_directory(

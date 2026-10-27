@@ -1,0 +1,28 @@
+schema_version: 1
+project_type: unreal
+version_format: "v{n:03d}"
+folder_template:
+  - path: "Content/Characters"
+    required: true
+  - path: "Content/Environments"
+    required: true
+  - path: "Content/Props"
+    required: true
+  - path: "Content/Materials"
+    required: true
+  - path: "Content/Maps"
+    required: true
+  - path: "Content/Blueprints"
+    required: true
+  - path: "Source/Imports"
+    required: true
+naming_patterns:
+  - pattern: '^(SM|SK|T|M|MI|BP|WBP|ABP|AM|A|PS|NS|DT|E|S)_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*\.uasset$'
+    description: "Unreal の推奨の接頭辞つきのアセット(例: SM_Chair_01.uasset、T_Wood_D.uasset)"
+    applies_to: asset
+  - pattern: '^L_[A-Z][A-Za-z0-9]*(_[A-Za-z0-9]+)*\.umap$'
+    description: "レベル(例: L_Forest_Main.umap)"
+    applies_to: level
+  - pattern: '^[A-Z][A-Za-z0-9_]*\.(fbx|abc|usd[ac]?|png|tga|exr|wav)$'
+    description: "インポート元(例: Chair.fbx)"
+    applies_to: source

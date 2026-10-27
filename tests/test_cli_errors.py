@@ -9,6 +9,7 @@ from pathlib import Path
 import pytest
 from click.testing import CliRunner
 
+import pipeinit.cli as cli
 import pipeinit.commands as commands
 from pipeinit.cli import (
     EXIT_NOT_WRITABLE,
@@ -209,3 +210,15 @@ def test_the_version_option_prints_the_package_version() -> None:
     assert result.exit_code == 0
     assert "version" in result.output.lower()
     assert sys.version  # keep the import used
+
+
+def test_the_console_script_entry_point_tolerates_unencodable_output(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    calls: list[str] = []
+    monkeypatch.setattr(cli, "main", lambda: calls.append("main"))
+    monkeypatch.setattr(cli, "_tolerate_unencodable_output", lambda: calls.append("streams"))
+
+    cli.run()
+
+    assert calls == ["streams", "main"]

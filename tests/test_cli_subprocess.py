@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import subprocess
 import sys
 from pathlib import Path
@@ -17,18 +18,23 @@ naming_patterns:
 """
 
 
-def run(*args: str, cwd: Path | None = None) -> subprocess.CompletedProcess[str]:
+def run(
+    *args: str, cwd: Path | None = None, env: dict[str, str] | None = None
+) -> subprocess.CompletedProcess[str]:
     return subprocess.run(
         [sys.executable, "-m", "pipeinit.cli", *args],
         capture_output=True,
         text=True,
+        encoding="utf-8",
+        errors="replace",
         cwd=cwd,
+        env={**os.environ, **(env or {})},
         check=False,
     )
 
 
-def test_help_lists_the_three_commands() -> None:
-    result = run("--help")
+def test_help_lists_the_three_commands_even_on_a_console_that_cannot_show_japanese() -> None:
+    result = run("--help", env={"PYTHONIOENCODING": "cp1252", "PYTHONUTF8": "0"})
 
     assert result.returncode == 0
     for command in ("init", "validate", "bump"):

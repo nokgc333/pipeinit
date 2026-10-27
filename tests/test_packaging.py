@@ -28,7 +28,7 @@ def test_the_typed_marker_is_shipped() -> None:
 
 
 def test_the_command_is_exposed() -> None:
-    assert PROJECT["scripts"]["pipeinit"] == "pipeinit.cli:main"
+    assert PROJECT["scripts"]["pipeinit"] == "pipeinit.cli:run"
 
 
 def test_the_version_matches_the_latest_changelog_entry() -> None:

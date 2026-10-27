@@ -51,7 +51,7 @@ dev = [
 ]
 
 [project.scripts]
-pipeinit = "pipeinit.cli:main"
+pipeinit = "pipeinit.cli:run"
 
 [build-system]
 requires = ["setuptools>=77"]

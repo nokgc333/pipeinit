@@ -3,9 +3,9 @@
 from __future__ import annotations
 
 import re
-from collections.abc import Iterator
 from pathlib import Path
 
+from pipeinit.fsutil import iter_files
 from pipeinit.rules import load_rule_file
 
 VERSION_RE = re.compile(r"^(?P<stem>.+_v)(?P<num>\d+)(?P<ext>\.\w+)$")
@@ -45,7 +45,7 @@ def validate_directory(target: Path, rules_path: str) -> list[dict[str, str]]:
     ]
 
     violations: list[dict[str, str]] = []
-    for path in _iter_files(target):
+    for path in iter_files(target):
         filename = path.name
         if not _matches_any(filename, patterns):
             relative = str(path.relative_to(target))
@@ -58,15 +58,6 @@ def validate_directory(target: Path, rules_path: str) -> list[dict[str, str]]:
                 }
             )
     return violations
-
-
-def _iter_files(target: Path) -> Iterator[Path]:
-    for path in sorted(target.rglob("*")):
-        if path.is_dir():
-            continue
-        if any(part.startswith(".") for part in path.relative_to(target).parts):
-            continue
-        yield path
 
 
 def _matches_any(filename: str, patterns: list[tuple[re.Pattern[str], str]]) -> bool:

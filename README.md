@@ -1,5 +1,7 @@
 # PipeInit
 
+[![CI](https://github.com/nokgc333/pipeinit/actions/workflows/ci.yml/badge.svg)](https://github.com/nokgc333/pipeinit/actions/workflows/ci.yml)
+
 > **English summary.** PipeInit is a small CLI for CG and game pipelines. `pipeinit init` creates a project folder tree from a rule set (Houdini, Maya, Blender, Unreal, game, film, generic), `pipeinit validate` checks file names against the rule set's regular expressions and suggests a rename for each violation, and `pipeinit bump` increments a version number (dry run by default, never overwrites). Rules are plain YAML with a validated schema; a `.pipeinit.yaml` picks the rules per project. It has JSON output, English and Japanese messages, shell completion, a pre-commit hook and a documented exit-code table. Python 3.11+ on Linux, macOS and Windows.
 
 CG/ゲームパイプライン向けの、プロジェクトフォルダ自動生成・命名規則バリデーション・バージョン採番 CLI。
@@ -8,12 +10,10 @@ CG/ゲームパイプライン向けの、プロジェクトフォルダ自動�
 
 ## できること
 
-| コマンド | 内容 |
-| --- | --- |
-| `pipeinit init --type <種別>` | ルールセットに従って、フォルダツリーを作る(既存は触らない)。`--houdini-env` で Houdini の `$JOB` のスニペットも書く |
-| `pipeinit validate <パス>...` | ファイル名を、ルールの正規表現と照合する。違反には、**リネームの候補**を出す(ファイルは変更しない)。pre-commit から使える |
-| `pipeinit bump <ファイル>` | バージョン番号を 1 つ上げる(`v003` → `v004`、`v999` → `v1000`)。既定はドライラン、`--apply` で改名。同名のファイルがあれば、上書きせずに失敗する |
-| `pipeinit completion bash\|zsh\|fish` | シェル補完のスクリプトを出す |
+- **`pipeinit init --type <種別>`:** ルールセットに従って、フォルダツリーを作る(既存は触らない)。`--houdini-env` で Houdini の `$JOB` のスニペットも書く
+- **`pipeinit validate <パス>...`:** ファイル名を、ルールの正規表現と照合する。違反には、**リネームの候補**を出す(ファイルは変更しない)。pre-commit から使える
+- **`pipeinit bump <ファイル>`:** バージョン番号を 1 つ上げる(`v003` → `v004`、`v999` → `v1000`)。既定はドライラン、`--apply` で改名。同名のファイルがあれば、上書きせずに失敗する
+- **`pipeinit completion bash|zsh|fish`:** シェル補完のスクリプトを出す
 
 種別(`--type`): `houdini` / `maya` / `blender` / `unreal` / `game` / `film` / `generic`
 
@@ -98,14 +98,12 @@ naming_patterns:
 
 ## 終了コード
 
-| コード | 意味 |
-| ---: | --- |
-| 0 | 成功(違反なし) |
-| 1 | 命名の違反あり、またはルールファイルの誤り |
-| 2 | 使い方の誤り(引数・オプション) |
-| 5 | 書き込めない(権限・作成先) |
-| 6 | ルールのパスが、作成先の外を指している |
-| 7 | リネーム先に、同名のファイルがある |
+- **0:** 成功(違反なし)
+- **1:** 命名の違反あり、またはルールファイルの誤り
+- **2:** 使い方の誤り(引数・オプション)
+- **5:** 書き込めない(権限・作成先)
+- **6:** ルールのパスが、作成先の外を指している
+- **7:** リネーム先に、同名のファイルがある
 
 `pipeinit --help` の末尾にも、同じ表が出る。
 

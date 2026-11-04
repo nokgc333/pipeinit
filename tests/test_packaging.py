@@ -74,14 +74,14 @@ def test_every_adr_is_listed_in_the_readme_and_the_docs_index() -> None:
         assert f"docs/adr/{adr.name}" in readme, adr.name
 
 
-def test_the_readme_has_an_english_summary_an_image_a_diagram_and_the_exit_code_table() -> None:
+def test_the_readme_has_an_english_summary_an_image_a_diagram_and_the_exit_code_list() -> None:
     readme = _read("README.md")
 
     assert "English summary" in readme
     assert (ROOT / "docs/images/demo.png").is_file()
     assert "docs/images/demo.png" in readme
     assert "```mermaid" in readme
-    for code in ("| 0 |", "| 1 |", "| 2 |", "| 5 |", "| 6 |", "| 7 |"):
+    for code in ("- **0:**", "- **1:**", "- **2:**", "- **5:**", "- **6:**", "- **7:**"):
         assert code in readme
 
 
@@ -91,7 +91,7 @@ def test_the_readme_exit_codes_match_the_code() -> None:
     readme = _read("README.md")
 
     for code, *_ in EXIT_CODE_TABLE:
-        assert f"| {code} |" in readme
+        assert f"- **{code}:**" in readme
 
 
 def test_the_old_version_of_the_specs_is_archived_and_the_current_one_is_linked() -> None:
